@@ -1,0 +1,12 @@
+{
+  "name": "clockify-ai-skill",
+  "version": "0.3.0",
+  "description": "Set up Clockify time-entry skills for Claude Code and Codex",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "bin": { "clockify-skill": "bin/clockify-skill.mjs" },
+  "files": ["bin/", "skills/", "README.md"],
+  "scripts": { "test": "node --test test/*.test.mjs", "check": "node --check bin/clockify-skill.mjs && node --check skills/clockify-time-entry/scripts/cli.mjs" },
+  "repository": { "type": "git", "url": "https://github.com/BastienBoymond/clockify-ai-skill.git" },
+  "license": "UNLICENSED"
+}

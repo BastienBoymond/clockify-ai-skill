@@ -1,0 +1,4 @@
+interface:
+  display_name: "Clockify Time Entries"
+  short_description: "Log or update Clockify entries with concise descriptions"
+  default_prompt: "Use $clockify-time-entry to log or correct my completed work in Clockify."
