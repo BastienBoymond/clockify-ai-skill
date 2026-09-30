@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeInterval, parseTimestamp, resolveDate, dayRange } from '../skills/clockify-time-entry/scripts/time.mjs';
+import { normalizeInterval, parseTimestamp, resolveDate, dayRange, roundUpMinutes } from '../skills/clockify-time-entry/scripts/time.mjs';
 import { NOW, entryInput } from './helpers.mjs';
 
 test('converts supplied local work and elapsed duration to UTC', () => {
@@ -42,6 +42,32 @@ test('supports explicit overnight dates and duration across a DST change', () =>
   assert.equal(overnight.durationMinutes, 120);
   const spring = normalizeInterval({ start: '2026-03-08T01:30', durationMinutes: 120 }, 'America/Los_Angeles', NOW);
   assert.equal(spring.end, '2026-03-08T11:30:00.000Z');
+});
+
+test('rounds durations up to the next quarter hour and keeps the start', () => {
+  const byDuration = normalizeInterval(entryInput({ durationMinutes: 50 }), 'America/Los_Angeles', NOW);
+  assert.equal(byDuration.start, '2026-09-25T16:00:00.000Z');
+  assert.equal(byDuration.end, '2026-09-25T17:00:00.000Z');
+  assert.equal(byDuration.durationMinutes, 60);
+  const byEnd = normalizeInterval({ start: '2026-09-25T09:00', end: '2026-09-25T10:07' }, 'UTC', NOW);
+  assert.equal(byEnd.end, '2026-09-25T10:15:00.000Z');
+  assert.equal(byEnd.durationMinutes, 75);
+  const seconds = normalizeInterval({ start: '2026-09-25T09:00', end: '2026-09-25T09:15:01' }, 'UTC', NOW);
+  assert.equal(seconds.durationMinutes, 30);
+  for (const exact of [15, 30, 45, 60, 135]) assert.equal(normalizeInterval({ start: '2026-09-25T09:00', durationMinutes: exact }, 'UTC', NOW).durationMinutes, exact);
+  assert.deepEqual([1, 14, 15, 16, 59, 61].map((minutes) => roundUpMinutes(minutes)), [15, 15, 15, 30, 60, 75]);
+});
+
+test('rounding can be disabled to preserve an existing interval exactly', () => {
+  const kept = normalizeInterval({ start: '2026-09-25T16:00:00.123Z', end: '2026-09-25T18:00:00.456Z' }, 'UTC', NOW, { round: false });
+  assert.equal(kept.end, '2026-09-25T18:00:00.456Z');
+  assert.equal(kept.durationMinutes, (Date.parse(kept.end) - Date.parse(kept.start)) / 60_000);
+});
+
+test('the completed-work check uses the supplied end, not the rounded end', () => {
+  const justFinished = normalizeInterval({ start: '2026-09-29T19:05Z', durationMinutes: 50 }, 'UTC', NOW);
+  assert.equal(justFinished.end, '2026-09-29T20:05:00.000Z');
+  assert.throws(() => normalizeInterval({ start: '2026-09-29T19:05Z', end: '2026-09-29T20:01Z' }, 'UTC', NOW), { code: 'FUTURE_ENTRY' });
 });
 
 for (const [name, input, code] of [

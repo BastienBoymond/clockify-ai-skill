@@ -33,7 +33,12 @@ Read [the command reference](references/commands.md) for JSON inputs and recover
    preview/write mode. Never mechanically truncate it. If the user explicitly
    requires longer text verbatim, explain the helper's limit.
    Ask for missing start times on new entries; for corrections,
-   reuse the existing times unless the user asks to change them. Pass `today`
+   reuse the existing times unless the user asks to change them. The helper
+   rounds every requested duration **up to the next quarter hour** (15, 30,
+   45, 60 minutes, and so on) and moves the end time accordingly; the start
+   time is kept. Report the returned interval; never resend an entry to
+   restore a shorter duration. Corrections that only change text or
+   associations keep the existing times untouched. Pass `today`
    or `yesterday` through to the helper so it resolves them in the current zone.
    For other relative dates, check `timezone` before resolving a calendar date;
    use the profile zone in automatic mode or the saved zone in fixed mode. Set

@@ -29,6 +29,18 @@ test('preview creates neither Clockify entries nor a local config/lock/journal',
   await assert.rejects(fs.stat(directory), { code: 'ENOENT' });
 });
 
+test('creates entries with the duration rounded up to the next quarter hour', async (t) => {
+  const { service, provider } = await fixture(t);
+  const preview = await service.create(entryInput({ durationMinutes: 50 }), { preview: true });
+  assert.equal(preview.entries[0].durationMinutes, 60);
+  assert.equal(preview.entries[0].payload.end, '2026-09-25T17:00:00.000Z');
+  const result = await service.create(entryInput({ end: '10:07', durationMinutes: undefined }));
+  assert.equal(result.results[0].status, 'created');
+  assert.equal(result.results[0].durationMinutes, 75);
+  assert.equal(provider.posts[0].body.start, '2026-09-25T16:00:00.000Z');
+  assert.equal(provider.posts[0].body.end, '2026-09-25T17:15:00.000Z');
+});
+
 test('validates an entire batch before creating its first entry', async (t) => {
   const { service, provider } = await fixture(t);
   await assert.rejects(service.create([entryInput(), entryInput({ start: undefined })]), { code: 'START_REQUIRED' });

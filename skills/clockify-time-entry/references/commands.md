@@ -44,6 +44,11 @@ One object, or an array of up to 100 objects:
 
 Required: a nonempty `description`, `start`, and exactly one of `end` or
 `durationMinutes` (positive whole minutes). The helper rejects future end times.
+Durations are always rounded **up to the next multiple of 15 minutes**: a
+50-minute request is logged as 60, and 09:00–10:07 becomes 09:00–10:15.
+`start` stays as supplied and `end` moves; previews and results show the rounded
+interval. The future-end check uses the supplied end, so work that just
+finished can be logged even if its rounded end is a few minutes ahead.
 New descriptions must fit on one line, at most **12 words and 100 characters**;
 aim for a natural 3–8 word activity label. This is enforced for both writes and
 previews. Whitespace separates words; characters are Unicode code points.
@@ -116,7 +121,10 @@ performs reads only and does not send the old long description again.
 
 Omitted fields keep their existing values, including times, project, task,
 tags, billability, and custom fields. `durationMinutes` adjusts the end using
-the existing start unless a new start is supplied. Clock-only times require
+the existing start unless a new start is supplied. Any update supplying
+`start`, `end`, or `durationMinutes` is rounded up to the next quarter hour,
+so a start-only change can also move the end; corrections without time fields
+keep the existing interval exactly, even when it is not a quarter-hour multiple. Clock-only times require
 `date`; use explicit calendar dates to move or extend an entry overnight.
 `projectId: null` and `taskId: null` explicitly remove those associations;
 `tagIds: []` clears tags. Custom fields are patched by ID: values not mentioned

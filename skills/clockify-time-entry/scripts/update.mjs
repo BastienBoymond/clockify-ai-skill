@@ -79,7 +79,10 @@ async function prepareUpdate(service, current, changes) {
     for (const field of changes.customFields) fields.set(field.customFieldId, { customFieldId: field.customFieldId, value: field.value, sourceType: 'TIMEENTRY' });
   }
   merged.customFields = [...fields.values()];
-  const [prepared] = await service.prepare(merged, { preserved: current });
+  // Only a requested time change is rounded up to the next quarter hour. A
+  // description or association fix keeps the existing interval untouched.
+  const round = ['start', 'end', 'durationMinutes'].some((key) => changes[key] !== undefined);
+  const [prepared] = await service.prepare(merged, { preserved: current, round });
   // PUT requires a full writable snapshot. Empty/null values explicitly clear
   // requested associations; unspecified fields keep their original values.
   prepared.payload.taskId ??= null;
