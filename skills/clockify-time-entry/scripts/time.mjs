@@ -1,5 +1,13 @@
 import { requireValue, SkillError } from './errors.mjs';
 
+// Logged durations are always rounded up to the next quarter hour
+// (15, 30, 45, 60 minutes, and so on). The start time is kept as supplied.
+export const ROUNDING_MINUTES = 15;
+
+export function roundUpMinutes(minutes, step = ROUNDING_MINUTES) {
+  return Math.ceil(minutes / step) * step;
+}
+
 export function validateTimezone(timezone) {
   requireValue(typeof timezone === 'string' && timezone.length > 0, 'INVALID_TIMEZONE', 'Supply an IANA timezone such as America/Los_Angeles.');
   try { new Intl.DateTimeFormat('en', { timeZone: timezone }).format(); } catch {
@@ -74,7 +82,7 @@ export function parseTimestamp(value, timezone, date, now = new Date()) {
   return candidates[0];
 }
 
-export function normalizeInterval(entry, timezone, now = new Date()) {
+export function normalizeInterval(entry, timezone, now = new Date(), { round = true } = {}) {
   const zone = validateTimezone(entry.timezone || timezone);
   requireValue(entry.start, 'START_REQUIRED', 'Ask the user for a start time; never assume 09:00 or end at now.');
   const hasEnd = entry.end !== undefined;
@@ -89,8 +97,13 @@ export function normalizeInterval(entry, timezone, now = new Date()) {
     end = parseTimestamp(entry.end, zone, entry.date, now);
   }
   requireValue(end > start, 'INVALID_INTERVAL', 'End must be after start. For overnight work, supply the end date explicitly.');
+  // Completed work is checked on the supplied end, before rounding, so work that
+  // ended a few minutes ago is not rejected because its rounded end is later.
   requireValue(end <= now.getTime(), 'FUTURE_ENTRY', 'Only completed work can be logged; the end time is in the future.');
-  return { start: new Date(start).toISOString(), end: new Date(end).toISOString(), timezone: zone, durationMinutes: (end - start) / 60_000 };
+  const elapsed = (end - start) / 60_000;
+  const durationMinutes = round ? roundUpMinutes(elapsed) : elapsed;
+  end = start + durationMinutes * 60_000;
+  return { start: new Date(start).toISOString(), end: new Date(end).toISOString(), timezone: zone, durationMinutes };
 }
 
 export function dayRange(date, timezone, now = new Date()) {

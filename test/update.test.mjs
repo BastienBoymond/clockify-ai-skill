@@ -178,6 +178,24 @@ test('an explicit time change keeps the ID and rejects a collision with another 
   assert.equal(provider.posts.length, 0);
 });
 
+test('a requested time change is rounded up, while other corrections keep the interval', async (t) => {
+  const { service, provider } = await fixture(t);
+  const old = await seed(service, provider);
+  old.timeInterval.end = '2026-09-25T17:07:00.000Z';
+  const renamed = await service.update({ id: old.id, description: 'Renamed only' });
+  assert.equal(renamed.results[0].status, 'updated');
+  assert.equal(provider.entries[0].timeInterval.end, '2026-09-25T17:07:00.000Z');
+  const shortened = await service.update({ id: old.id, durationMinutes: 50 });
+  assert.equal(shortened.results[0].durationMinutes, 60);
+  assert.equal(provider.entries[0].timeInterval.end, '2026-09-25T17:00:00.000Z');
+  const moved = await service.update({ id: old.id, start: '09:10', date: '2026-09-25' });
+  assert.equal(moved.results[0].start, '2026-09-25T16:10:00.000Z');
+  assert.equal(moved.results[0].end, '2026-09-25T17:10:00.000Z');
+  assert.equal(moved.results[0].durationMinutes, 60);
+  assert.equal(provider.posts.length, 0);
+  assert.equal(provider.entries.length, 1);
+});
+
 test('explicit null associations clear only the requested fields', async (t) => {
   const { service, provider } = await fixture(t);
   const old = await seed(service, provider, { taskId: 'task-1', tagIds: ['tag-1'] });

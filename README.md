@@ -7,7 +7,9 @@ key once, then ask either agent:
 > description: API integration.
 
 The skill asks for a start time when logging new work if you only provide a
-duration. It creates entries on free intervals and updates the existing entry
+duration. Durations are always rounded up to the next quarter hour (15, 30, 45,
+60 minutes, and so on); the start time is kept and the end time moves.
+It creates entries on free intervals and updates the existing entry
 when exactly one has the same start and end. Partial overlaps or multiple matches
 require choosing the entry to correct. Proposed descriptions are short activity
 labels, usually 3–8 words. The helper rejects new descriptions exceeding 12 words
@@ -135,6 +137,7 @@ Example `entry.json`:
 ```
 
 Use your actual date, time, and project. Input can also be an array of entries.
+A 50-minute request is logged as 60 minutes, and 09:00–10:07 as 09:00–10:15.
 For end times, timezones, tasks, tags, custom fields, and result schemas, see the
 [command reference](skills/clockify-time-entry/references/commands.md).
 
@@ -149,7 +152,7 @@ To correct an existing entry, supply its ID and only changed fields in
 ```
 
 Existing times, project, task, tags, billability, and custom fields are preserved
-unless explicitly changed. The entry keeps its ID; no replacement entry is
+unless explicitly changed. A changed time is rounded up to the next quarter hour. The entry keeps its ID; no replacement entry is
 created. For example, a planned 08:30–13:00 block becomes the actual work summary
 on that same block. If the earlier version already created two blocks, choose
 the ID to correct; duplicates are not deleted automatically.

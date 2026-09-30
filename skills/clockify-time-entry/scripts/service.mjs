@@ -109,11 +109,11 @@ export class ClockifyService {
 
   update(input, options) { return updateEntries(this, input, options); }
 
-  async prepare(input, { preserved, deferRequired = false } = {}) {
+  async prepare(input, { preserved, deferRequired = false, round = true } = {}) {
     const entries = validateInputs(input);
     const now = this.now();
     const timezone = this.timeContext?.timezone || this.config.timezone;
-    const normalized = entries.map((entry) => ({ entry, interval: normalizeInterval(entry, timezone, now) }));
+    const normalized = entries.map((entry) => ({ entry, interval: normalizeInterval(entry, timezone, now, { round }) }));
     await this.verifyIdentity();
     const workspace = await this.api.get(this.base);
     const settings = workspace.workspaceSettings || {};
