@@ -70,6 +70,16 @@ test('the completed-work check uses the supplied end, not the rounded end', () =
   assert.throws(() => normalizeInterval({ start: '2026-09-29T19:05Z', end: '2026-09-29T20:01Z' }, 'UTC', NOW), { code: 'FUTURE_ENTRY' });
 });
 
+test('allowFuture skips only the completed-work check when the user asks for it', () => {
+  const field = normalizeInterval({ start: '2026-09-29T19:05Z', end: '2026-09-29T20:01Z', allowFuture: true }, 'UTC', NOW);
+  assert.equal(field.end, '2026-09-29T20:05:00.000Z');
+  assert.equal(field.durationMinutes, 60);
+  const option = normalizeInterval({ start: '2026-09-29T19:05Z', end: '2026-09-29T20:01Z' }, 'UTC', NOW, { allowFuture: true });
+  assert.equal(option.end, '2026-09-29T20:05:00.000Z');
+  assert.equal(normalizeInterval({ start: '2027-01-01T09:00', durationMinutes: 60, allowFuture: true }, 'UTC', NOW).end, '2027-01-01T10:00:00.000Z');
+  assert.throws(() => normalizeInterval({ start: '2026-09-29T19:05Z', end: '2026-09-29T20:01Z', allowFuture: false }, 'UTC', NOW), { code: 'FUTURE_ENTRY' });
+});
+
 for (const [name, input, code] of [
   ['missing start', { durationMinutes: 60 }, 'START_REQUIRED'],
   ['missing end and duration', { start: '2026-09-25T09:00' }, 'INTERVAL_REQUIRED'],

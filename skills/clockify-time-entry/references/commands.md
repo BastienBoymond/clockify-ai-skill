@@ -43,7 +43,9 @@ One object, or an array of up to 100 objects:
 ```
 
 Required: a nonempty `description`, `start`, and exactly one of `end` or
-`durationMinutes` (positive whole minutes). The helper rejects future end times.
+`durationMinutes` (positive whole minutes). The helper rejects future end times
+(`FUTURE_ENTRY`) unless that entry sets `allowFuture: true`; set it only on the
+user's explicit request to log a block that ends later than now.
 Durations are always rounded **up to the next multiple of 15 minutes**: a
 50-minute request is logged as 60, and 09:00–10:07 becomes 09:00–10:15.
 `start` stays as supplied and `end` moves; previews and results show the rounded
@@ -86,6 +88,10 @@ Optional fields:
   exact-interval update, omission preserves the existing project.
 - `billable`: boolean; defaults to the project's setting (otherwise false) for
   creation, and preserves the current value for updates unless supplied.
+- `allowFuture`: boolean; `true` logs an entry whose end (or whole interval) is
+  later than now. Only the completed-work check is skipped; rounding, overlap
+  detection, and all other validation still apply. Set it only when the user
+  explicitly asks; it is never stored in the entry.
 - `taskId`, `tagIds`: existing IDs; checked against the chosen workspace/project.
 - `customFields`: Clockify values shaped as
   `[{"customFieldId":"existing-id","value":"user-supplied value"}]`.
@@ -124,7 +130,10 @@ tags, billability, and custom fields. `durationMinutes` adjusts the end using
 the existing start unless a new start is supplied. Any update supplying
 `start`, `end`, or `durationMinutes` is rounded up to the next quarter hour,
 so a start-only change can also move the end; corrections without time fields
-keep the existing interval exactly, even when it is not a quarter-hour multiple. Clock-only times require
+keep the existing interval exactly, even when it is not a quarter-hour multiple,
+and are not re-checked as completed work. A time change that ends later than
+now needs `allowFuture: true` in the same update; `allowFuture` alone changes
+nothing. Clock-only times require
 `date`; use explicit calendar dates to move or extend an entry overnight.
 `projectId: null` and `taskId: null` explicitly remove those associations;
 `tagIds: []` clears tags. Custom fields are patched by ID: values not mentioned

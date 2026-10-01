@@ -82,7 +82,7 @@ export function parseTimestamp(value, timezone, date, now = new Date()) {
   return candidates[0];
 }
 
-export function normalizeInterval(entry, timezone, now = new Date(), { round = true } = {}) {
+export function normalizeInterval(entry, timezone, now = new Date(), { round = true, allowFuture = false } = {}) {
   const zone = validateTimezone(entry.timezone || timezone);
   requireValue(entry.start, 'START_REQUIRED', 'Ask the user for a start time; never assume 09:00 or end at now.');
   const hasEnd = entry.end !== undefined;
@@ -99,7 +99,9 @@ export function normalizeInterval(entry, timezone, now = new Date(), { round = t
   requireValue(end > start, 'INVALID_INTERVAL', 'End must be after start. For overnight work, supply the end date explicitly.');
   // Completed work is checked on the supplied end, before rounding, so work that
   // ended a few minutes ago is not rejected because its rounded end is later.
-  requireValue(end <= now.getTime(), 'FUTURE_ENTRY', 'Only completed work can be logged; the end time is in the future.');
+  // An explicit allowFuture opt-in (per entry, or for an untouched interval on
+  // update) skips only this check; rounding and overlap checks still apply.
+  requireValue(allowFuture || entry.allowFuture === true || end <= now.getTime(), 'FUTURE_ENTRY', 'Only completed work can be logged; the end time is in the future. Set allowFuture: true only when the user explicitly asks to log this block anyway.');
   const elapsed = (end - start) / 60_000;
   const durationMinutes = round ? roundUpMinutes(elapsed) : elapsed;
   end = start + durationMinutes * 60_000;
