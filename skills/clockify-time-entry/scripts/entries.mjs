@@ -1,6 +1,6 @@
 import { requireValue } from './errors.mjs';
 
-export const FIELDS = new Set(['description', 'date', 'start', 'end', 'durationMinutes', 'timezone', 'project', 'projectId', 'billable', 'taskId', 'tagIds', 'customFields']);
+export const FIELDS = new Set(['description', 'date', 'start', 'end', 'durationMinutes', 'timezone', 'project', 'projectId', 'billable', 'taskId', 'tagIds', 'customFields', 'allowFuture']);
 
 export function requireResolvedWrites(records) {
   const pending = records.find((record) => record.state === 'pending');

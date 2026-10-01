@@ -8,7 +8,8 @@ key once, then ask either agent:
 
 The skill asks for a start time when logging new work if you only provide a
 duration. Durations are always rounded up to the next quarter hour (15, 30, 45,
-60 minutes, and so on); the start time is kept and the end time moves.
+60 minutes, and so on); the start time is kept and the end time moves. An end
+time later than now is refused unless you explicitly ask to log the block anyway.
 It creates entries on free intervals and updates the existing entry
 when exactly one has the same start and end. Partial overlaps or multiple matches
 require choosing the entry to correct. Proposed descriptions are short activity
@@ -188,7 +189,8 @@ the ID to correct; duplicates are not deleted automatically.
   `write.lock/owner.json` has stopped before removing only the lock directory.
   Preserve `attempts/`. See the command reference for recovery details.
 
-This version creates and updates completed regular entries for the key owner.
+This version creates and updates completed regular entries for the key owner;
+blocks ending after the current time are logged only on your explicit request.
 Timers, Git-based allocation, deletions, project creation, and other users'
 entries are out of scope. The helper re-reads an entry before updating to detect
 intervening changes; Clockify does not expose a conditional update token here.

@@ -196,6 +196,24 @@ test('a requested time change is rounded up, while other corrections keep the in
   assert.equal(provider.entries.length, 1);
 });
 
+test('corrections keep a future-ended interval, while moving it later needs allowFuture', async (t) => {
+  const { service, provider } = await fixture(t);
+  const planned = await seed(service, provider, { date: '2026-09-29', start: '12:00', durationMinutes: 90, allowFuture: true });
+  assert.equal(planned.timeInterval.end, '2026-09-29T20:30:00.000Z');
+  const renamed = await service.update({ id: planned.id, description: 'Renamed only' });
+  assert.equal(renamed.results[0].status, 'updated');
+  assert.equal(provider.entries[0].timeInterval.end, '2026-09-29T20:30:00.000Z');
+  await assert.rejects(service.update({ id: planned.id, allowFuture: true }), { code: 'UPDATE_REQUIRED' });
+  const refused = await service.update({ id: planned.id, durationMinutes: 120 });
+  assert.equal(refused.error.code, 'FUTURE_ENTRY');
+  assert.equal(provider.puts.length, 1);
+  const extended = await service.update({ id: planned.id, durationMinutes: 120, allowFuture: true });
+  assert.equal(extended.results[0].status, 'updated');
+  assert.equal(extended.results[0].end, '2026-09-29T21:00:00.000Z');
+  assert.equal(provider.entries[0].timeInterval.end, '2026-09-29T21:00:00.000Z');
+  assert.equal(provider.posts.length, 0);
+});
+
 test('explicit null associations clear only the requested fields', async (t) => {
   const { service, provider } = await fixture(t);
   const old = await seed(service, provider, { taskId: 'task-1', tagIds: ['tag-1'] });

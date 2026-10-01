@@ -34,6 +34,7 @@ function validateInputs(input) {
     requireValue(!(entry.project !== undefined && entry.projectId !== undefined), 'INVALID_PROJECT', 'Supply project or projectId, not both.');
     for (const field of ['project', 'projectId', 'taskId']) if (entry[field] !== undefined) requireValue(typeof entry[field] === 'string' && entry[field].trim(), 'INVALID_INPUT', `${field} must be a nonempty string.`);
     if (entry.billable !== undefined) requireValue(typeof entry.billable === 'boolean', 'INVALID_INPUT', 'billable must be true or false.');
+    if (entry.allowFuture !== undefined) requireValue(typeof entry.allowFuture === 'boolean', 'INVALID_INPUT', 'allowFuture must be true or false.');
     if (entry.tagIds !== undefined) requireValue(Array.isArray(entry.tagIds) && entry.tagIds.every((id) => typeof id === 'string' && id), 'INVALID_INPUT', 'tagIds must contain existing tag IDs.');
     if (entry.customFields !== undefined) requireValue(Array.isArray(entry.customFields) && entry.customFields.every((field) => field && typeof field.customFieldId === 'string' && Object.hasOwn(field, 'value')), 'INVALID_INPUT', 'customFields must contain customFieldId and a user-supplied value.');
   }
@@ -109,11 +110,11 @@ export class ClockifyService {
 
   update(input, options) { return updateEntries(this, input, options); }
 
-  async prepare(input, { preserved, deferRequired = false, round = true } = {}) {
+  async prepare(input, { preserved, deferRequired = false, round = true, allowFuture = false } = {}) {
     const entries = validateInputs(input);
     const now = this.now();
     const timezone = this.timeContext?.timezone || this.config.timezone;
-    const normalized = entries.map((entry) => ({ entry, interval: normalizeInterval(entry, timezone, now, { round }) }));
+    const normalized = entries.map((entry) => ({ entry, interval: normalizeInterval(entry, timezone, now, { round, allowFuture }) }));
     await this.verifyIdentity();
     const workspace = await this.api.get(this.base);
     const settings = workspace.workspaceSettings || {};

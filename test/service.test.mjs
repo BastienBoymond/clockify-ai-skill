@@ -41,6 +41,19 @@ test('creates entries with the duration rounded up to the next quarter hour', as
   assert.equal(provider.posts[0].body.end, '2026-09-25T17:15:00.000Z');
 });
 
+test('a future end is logged only with an explicit allowFuture opt-in', async (t) => {
+  const { service, provider } = await fixture(t);
+  const planned = { date: '2026-09-29', start: '12:00', durationMinutes: 90 };
+  await assert.rejects(service.create(entryInput(planned)), { code: 'FUTURE_ENTRY' });
+  await assert.rejects(service.create(entryInput({ ...planned, allowFuture: 'yes' })), { code: 'INVALID_INPUT' });
+  assert.equal(provider.posts.length, 0);
+  const result = await service.create(entryInput({ ...planned, allowFuture: true }));
+  assert.equal(result.results[0].status, 'created');
+  assert.equal(result.results[0].end, '2026-09-29T20:30:00.000Z');
+  assert.equal(provider.posts[0].body.end, '2026-09-29T20:30:00.000Z');
+  assert.equal(Object.hasOwn(provider.posts[0].body, 'allowFuture'), false);
+});
+
 test('validates an entire batch before creating its first entry', async (t) => {
   const { service, provider } = await fixture(t);
   await assert.rejects(service.create([entryInput(), entryInput({ start: undefined })]), { code: 'START_REQUIRED' });

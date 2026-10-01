@@ -15,7 +15,7 @@ function patchInput(input) {
   const changes = Object.fromEntries(Object.entries(raw).filter(([, value]) => value !== undefined));
   requireValue(typeof id === 'string' && id.trim(), 'ENTRY_ID_REQUIRED', 'Select an existing entry ID from entries, or from the overlap candidates.');
   requireValue(Object.keys(changes).every((key) => FIELDS.has(key)), 'UNKNOWN_FIELD', 'Unknown update field. Only supply fields documented in references/commands.md.');
-  requireValue(Object.keys(changes).some((key) => !['date', 'timezone'].includes(key)), 'UPDATE_REQUIRED', 'Supply at least one field to change. A date or timezone alone does not move an entry; provide start or end.');
+  requireValue(Object.keys(changes).some((key) => !['date', 'timezone', 'allowFuture'].includes(key)), 'UPDATE_REQUIRED', 'Supply at least one field to change. A date or timezone alone does not move an entry; provide start or end.');
   requireValue(!(changes.date !== undefined || changes.timezone !== undefined) || ['start', 'end', 'durationMinutes'].some((key) => changes[key] !== undefined), 'INVALID_INPUT', 'Supply start, end, or durationMinutes when changing the date or timezone.');
   requireValue(!(changes.project !== undefined && changes.projectId !== undefined), 'INVALID_PROJECT', 'Supply project or projectId, not both.');
   requireValue(!(changes.end !== undefined && changes.durationMinutes !== undefined), 'INTERVAL_REQUIRED', 'Supply either end or durationMinutes.');
@@ -79,10 +79,11 @@ async function prepareUpdate(service, current, changes) {
     for (const field of changes.customFields) fields.set(field.customFieldId, { customFieldId: field.customFieldId, value: field.value, sourceType: 'TIMEENTRY' });
   }
   merged.customFields = [...fields.values()];
-  // Only a requested time change is rounded up to the next quarter hour. A
-  // description or association fix keeps the existing interval untouched.
-  const round = ['start', 'end', 'durationMinutes'].some((key) => changes[key] !== undefined);
-  const [prepared] = await service.prepare(merged, { preserved: current, round });
+  // Only a requested time change is rounded up to the next quarter hour and
+  // checked as completed work. A description or association fix keeps the
+  // existing interval untouched, even when that interval ends in the future.
+  const timeChanged = ['start', 'end', 'durationMinutes'].some((key) => changes[key] !== undefined);
+  const [prepared] = await service.prepare(merged, { preserved: current, round: timeChanged, allowFuture: !timeChanged });
   // PUT requires a full writable snapshot. Empty/null values explicitly clear
   // requested associations; unspecified fields keep their original values.
   prepared.payload.taskId ??= null;
