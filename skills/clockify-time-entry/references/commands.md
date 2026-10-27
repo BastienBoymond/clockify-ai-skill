@@ -5,7 +5,11 @@ directory from the loaded SKILL.md, not the current repository. Commands other
 than `setup` and `--help` use JSON output. Failures have `ok: false` and a nonzero
 exit code. Setup also returns JSON, with private prompts on the terminal.
 
-- `setup [--agent both|claude|codex] [--workspace <id-or-name>] [--timezone auto|<IANA-zone>] [--region global|eu|us|uk|au] [--replace-key]`
+- `setup [--agent both|claude|codex | --no-install] [--workspace <id-or-name>] [--timezone auto|<IANA-zone>] [--region global|eu|us|uk|au] [--replace-key]`
+  With `--no-install`, validate credentials and save shared configuration without
+  inspecting or installing agent skill directories; the result has `installed: []`.
+  This flag cannot be combined with `--agent`. Use it for every setup operation
+  through Agensi, including `--replace-key` and timezone or region changes.
 - `status`: local configuration, timezone, UTC current time, and lock state;
   does not contact Clockify or expose the key. `timezoneMode` is `clockify` or
   `fixed`; the reported timezone is the last cached value.

@@ -18,3 +18,40 @@ jobs:
       - run: npm test
       - run: npm run check
       - run: npm pack --dry-run
+  package-agensi:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Build Agensi package
+        run: npm run package:agensi -- --output-dir "$RUNNER_TEMP/clockify-agensi"
+      - name: Verify and name ZIP for this commit
+        id: package
+        shell: bash
+        run: |
+          archive="$RUNNER_TEMP/clockify-agensi/clockify-time-entry.zip"
+          unzip -tq "$archive"
+          named_archive="$RUNNER_TEMP/clockify-agensi/clockify-time-entry-${GITHUB_SHA:0:12}.zip"
+          mv "$archive" "$named_archive"
+          printf 'zip=%s\n' "$named_archive" >> "$GITHUB_OUTPUT"
+      - name: Upload ZIP
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ steps.package.outputs.zip }}
+          archive: false
+          if-no-files-found: error
+          retention-days: 90
+          overwrite: true
+      - name: Link the downloadable ZIP
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        run: |
+          printf '## Agensi package\n\nCommit: `%s`\n\n[Download the ZIP](%s)\n\nSHA-256: `%s`\n\nRetained for 90 days. Upload this ZIP directly to Agensi.\n' \
+            "$GITHUB_SHA" "$ARTIFACT_URL" "$ARTIFACT_DIGEST" >> "$GITHUB_STEP_SUMMARY"

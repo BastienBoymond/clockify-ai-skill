@@ -57,7 +57,14 @@ node bin/clockify-skill.mjs setup --agent codex --timezone Europe/Paris
 node bin/clockify-skill.mjs setup --timezone auto
 node bin/clockify-skill.mjs setup --workspace existing-workspace-id --region eu
 node bin/clockify-skill.mjs setup --replace-key
+node bin/clockify-skill.mjs setup --no-install
 ```
+
+`--no-install` configures the account, workspace, and timezone without inspecting
+or installing agent skill directories. It returns `installed: []` and cannot be
+combined with `--agent`. Use it for every setup operation when running through
+Agensi, including key replacement and timezone or region changes. Existing skill
+installations and the shared attempts journal are preserved.
 
 `--agent` defaults to `both`. Regional choices are `global` (default), `eu`, `us`,
 `uk`, and `au`. Select your actual Clockify data region explicitly; the helper
@@ -197,6 +204,49 @@ intervening changes; Clockify does not expose a conditional update token here.
 Local locking cannot make edits outside this helper atomic. Checking all overlaps
 may require several API pages for a large history; incomplete reads stop writes.
 
+## Agensi package
+
+From this repository checkout, build the upload ZIP and submission text:
+
+```sh
+npm run package:agensi
+npm run package:agensi -- --output-dir /path/to/output
+```
+
+Packaging requires Node.js 22+, `zip`, and `unzip`. It writes three files to
+`.context/agensi/` by default: `clockify-time-entry.zip`, `form-fields.md`, and
+`demo-evidence.json`. Rebuilding replaces those three files and preserves other
+files in the output directory. Only the ZIP is the skill payload; it contains
+one root `SKILL.md`, the helper scripts, and their references from an explicit
+file list. The build checks archive integrity and runs the shipped service
+against a simulated Clockify API to produce the demo. It does not read real
+credentials or contact Clockify. All scripts remain under Agensi's 20 KB limit.
+
+The listing text is maintained in `distribution/agensi/listing.mjs`. Its initial
+offer is **$5/month**, with no yearly plan, hosted service, dedicated support, or
+promise of future features. It discloses the public GitHub source. The form text
+covers every field, including permissions, limitations, and FAQ; optional media
+are left empty. The ZIP includes Agensi's supported frontmatter fields for
+prefilling the listing while installed skill frontmatter remains unchanged.
+
+Agensi loads scripts on demand into a temporary directory. Use
+`setup --no-install`, keep configuration and attempts in the persistent shared
+directory, and clean up only the temporary helper files. See the
+[Agensi runtime instructions](skills/clockify-time-entry/references/agensi.md).
+
+After every push or merge to `main`, the existing GitHub Actions workflow waits
+for all four test jobs, builds the package, and uploads
+`clockify-time-entry-<12-character-commit-SHA>.zip`. Find the direct download link
+in the workflow summary or its **Artifacts** section; it requires a GitHub login
+and is retained for 90 days. The file is uploaded as-is, so it can be submitted
+directly to Agensi. Pull requests and other branches run the checks without
+publishing an artifact. Rerunning the packaging job replaces its artifact in
+that run. This does not create GitHub releases or publish to Agensi.
+
+An Agensi payout method is required for the paid listing. Upload, review,
+approval, and a real agent session through Agensi remain separate from the
+local package and CI checks.
+
 ## Development
 
 ```sh
@@ -205,7 +255,8 @@ npm run check
 npm pack --dry-run
 ```
 
-Tests use mocked Clockify responses and temporary installation directories. They
+Tests require `zip` and `unzip` for the Agensi archive checks. They use mocked
+Clockify responses and temporary installation directories. They
 do not read real credentials or create real time entries. Terminal prompt tests
 use Python 3's standard-library PTY support when it is available. CI tests Node
 22 and 24 on macOS and Linux. Actual credential setup and live logging are
