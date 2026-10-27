@@ -5,9 +5,12 @@ description: Create, update, or preview completed Clockify time entries with con
 
 # Clockify time entries
 
-Use the bundled helper for Clockify reads and writes. Resolve `scripts/cli.mjs`
-relative to this SKILL.md and invoke it with `node` using its absolute path, from
-any working directory. It requires Node.js 22+. It does not require an MCP server.
+Use the bundled helper for Clockify reads and writes. It requires Node.js 22+
+and no additional Clockify MCP server. For an installed skill, resolve
+`scripts/cli.mjs` relative to this SKILL.md and invoke it with `node` using its
+absolute path, from any working directory. When loaded through Agensi, first
+read [the Agensi runtime instructions](references/agensi.md): fetch the scripts
+into a temporary directory and use `setup --no-install` for every setup command.
 Read [the command reference](references/commands.md) for JSON inputs and recovery.
 
 1. Run `status` to find the saved workspace and timezone mode. Its timezone is
@@ -17,6 +20,8 @@ Read [the command reference](references/commands.md) for JSON inputs and recover
    If setup is missing or authentication fails, give the user the command
    `node "<absolute-skill-directory>/scripts/cli.mjs" setup` to run in their own
    interactive terminal. It asks privately for the API key and saves it locally.
+   For Agensi, use the temporary helper's absolute path and add `--no-install`,
+   including when replacing a key or changing timezone/region preferences.
    Never ask for a key in chat, pass one in command arguments, or read credentials.
    Clockify timezone changes are automatic; no sync command is needed. For an
    explicit refresh, `timezone --sync` updates the cache and enables automatic

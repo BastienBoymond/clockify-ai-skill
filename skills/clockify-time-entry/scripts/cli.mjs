@@ -11,7 +11,7 @@ import { SkillError, errorResult, jsonOutput, rememberSecret, requireValue } fro
 
 const HELP = `Clockify time-entry skill (Node.js 22+)
 
-  clockify-skill setup [--agent both|claude|codex] [--workspace <id-or-name>]
+  clockify-skill setup [--agent both|claude|codex | --no-install] [--workspace <id-or-name>]
                       [--timezone auto|<IANA-zone>] [--region global|eu|us|uk|au]
                       [--replace-key]
   clockify-skill status
@@ -24,6 +24,7 @@ const HELP = `Clockify time-entry skill (Node.js 22+)
 Setup asks for your key privately in a terminal. Never put the key in chat or
 command arguments. CLOCKIFY_API_KEY overrides a saved key. See README.md for
 installation and the skill's references/commands.md for entry JSON examples.
+Use setup --no-install to configure Clockify without installing skill copies.
 Time commands follow the Clockify profile timezone automatically. Use setup
 --timezone <IANA-zone> to pin a zone, or --timezone auto to follow Clockify again.
 `;
@@ -32,11 +33,11 @@ function parse(args) {
   const [command, ...rest] = args;
   if (!command || command === '--help' || command === '-h' || command === 'help') return { command: 'help', options: {} };
   const allowed = {
-    setup: ['agent', 'workspace', 'timezone', 'region', 'replace-key'],
+    setup: ['agent', 'workspace', 'timezone', 'region', 'replace-key', 'no-install'],
     status: [], timezone: ['sync'], projects: ['details', 'project'], entries: ['date'], create: ['input', 'preview'], update: ['input', 'preview'],
   };
   requireValue(Object.hasOwn(allowed, command), 'INVALID_COMMAND', 'Use setup, status, timezone, projects, entries, create, or update. Run --help for examples.');
-  const flags = new Set(['replace-key', 'details', 'preview', 'sync']);
+  const flags = new Set(['replace-key', 'no-install', 'details', 'preview', 'sync']);
   const options = {};
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];

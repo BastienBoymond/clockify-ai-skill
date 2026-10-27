@@ -89,7 +89,8 @@ export async function setup(options, {
   apiFactory = (key, region) => new ClockifyApi(key, region),
   source = sourceSkill,
 } = {}) {
-  const targets = await installationTargets(options.agent || 'both', home);
+  requireValue(!(options['no-install'] && options.agent !== undefined), 'INVALID_OPTION', '--no-install cannot be combined with --agent.');
+  const targets = options['no-install'] ? [] : await installationTargets(options.agent || 'both', home);
   return withLock(directory, async () => {
     const existing = await loadConfig(directory, env);
     const region = options.region || existing?.region || 'global';
@@ -132,6 +133,8 @@ export async function setup(options, {
     const installed = await install(targets, source);
     return { ok: true, user: config.user, workspace: config.workspace, timezone, timezoneMode: mode, region,
       credentialSource: fromEnvironment ? 'environment (not saved)' : 'saved locally', installed,
-      next: 'Start a new Claude Code or Codex session, then ask it to log completed work with a start time.' };
+      next: options['no-install']
+        ? 'Clockify is configured. Continue using the temporary helper in your current agent session.'
+        : 'Start a new Claude Code or Codex session, then ask it to log completed work with a start time.' };
   });
 }

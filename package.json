@@ -6,7 +6,11 @@
   "engines": { "node": ">=22" },
   "bin": { "clockify-skill": "bin/clockify-skill.mjs" },
   "files": ["bin/", "skills/", "README.md"],
-  "scripts": { "test": "node --test test/*.test.mjs", "check": "node --check bin/clockify-skill.mjs && node --check skills/clockify-time-entry/scripts/cli.mjs" },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check bin/clockify-skill.mjs && node --check skills/clockify-time-entry/scripts/cli.mjs && node --check skills/clockify-time-entry/scripts/setup.mjs && node --check scripts/package-agensi.mjs && node --check scripts/agensi-demo.mjs && node --check distribution/agensi/listing.mjs",
+    "package:agensi": "node scripts/package-agensi.mjs"
+  },
   "repository": { "type": "git", "url": "https://github.com/BastienBoymond/clockify-ai-skill.git" },
   "license": "UNLICENSED"
 }

@@ -58,6 +58,64 @@ test('repeated setup reuses credentials/preferences and refreshes managed instal
   assert.equal((await loadConfig(directory, {})).apiKey, TEST_KEY);
 });
 
+test('setup --no-install configures private credentials without creating agent directories', async (t) => {
+  const { dependencies, provider, directory, home } = await fixture(t);
+  const prompts = [];
+  const result = await run(['setup', '--no-install'], { ...dependencies,
+    prompt: async (message, options) => { prompts.push({ message, options }); return TEST_KEY; } });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.installed, []);
+  assert.equal(prompts.length, 1);
+  assert.equal(prompts[0].options.secret, true);
+  const config = await loadConfig(directory, {});
+  assert.equal(config.apiKey, TEST_KEY);
+  assert.equal(config.workspace.id, 'workspace-1');
+  assert.equal(config.timezone, provider.user.settings.timeZone);
+  assert.equal((await fs.stat(path.join(directory, 'config.json'))).mode & 0o777, 0o600);
+  assert.equal((await fs.stat(directory)).mode & 0o777, 0o700);
+  await assert.rejects(fs.stat(path.join(home, '.claude')), { code: 'ENOENT' });
+  await assert.rejects(fs.stat(path.join(home, '.agents')), { code: 'ENOENT' });
+  assert.equal(provider.posts.length + provider.puts.length, 0);
+  assert.equal(JSON.stringify(result).includes(TEST_KEY), false);
+});
+
+test('setup --no-install preserves managed and unmanaged skills and the shared journal', async (t) => {
+  const { dependencies, provider, directory, home } = await fixture(t);
+  const first = await setup({ agent: 'claude', timezone: 'Europe/Paris' }, { ...dependencies, prompt: async () => TEST_KEY });
+  const managed = path.join(first.installed[0].path, 'SKILL.md');
+  await fs.writeFile(managed, 'Existing managed skill content');
+  const unmanaged = path.join(home, '.agents', 'skills', 'clockify-time-entry', 'SKILL.md');
+  await fs.mkdir(path.dirname(unmanaged), { recursive: true });
+  await fs.writeFile(unmanaged, 'Unrelated user-maintained content');
+  const attempts = path.join(directory, 'attempts');
+  await fs.mkdir(attempts, { mode: 0o700 });
+  await fs.writeFile(path.join(attempts, 'preserve-me.json'), 'Existing attempt record', { mode: 0o600 });
+  provider.workspaces.push({ id: 'workspace-2', name: 'Second Workspace' });
+  const result = await run(['setup', '--no-install', '--workspace', 'workspace-2', '--region', 'eu'], {
+    ...dependencies, source: path.join(home, 'nonexistent-source'),
+    prompt: async () => { throw new Error('Saved credentials should be reused'); },
+  });
+  assert.deepEqual(result.installed, []);
+  assert.equal(result.workspace.id, 'workspace-2');
+  assert.equal(result.region, 'eu');
+  assert.equal(result.timezone, 'Europe/Paris');
+  assert.equal(result.timezoneMode, 'fixed');
+  assert.equal((await loadConfig(directory, {})).apiKey, TEST_KEY);
+  assert.equal(await fs.readFile(managed, 'utf8'), 'Existing managed skill content');
+  assert.equal(await fs.readFile(unmanaged, 'utf8'), 'Unrelated user-maintained content');
+  assert.equal(await fs.readFile(path.join(attempts, 'preserve-me.json'), 'utf8'), 'Existing attempt record');
+  assert.equal(provider.posts.length + provider.puts.length, 0);
+});
+
+test('setup rejects --no-install with --agent before prompts, API requests, or writes', async (t) => {
+  const { dependencies, provider, directory } = await fixture(t);
+  await assert.rejects(run(['setup', '--no-install', '--agent', 'codex'], {
+    ...dependencies, prompt: async () => { throw new Error('Should not prompt'); },
+  }), { code: 'INVALID_OPTION' });
+  assert.equal(provider.calls.length, 0);
+  await assert.rejects(fs.stat(directory), { code: 'ENOENT' });
+});
+
 test('multiple workspaces ask for a selection and remember it', async (t) => {
   const { dependencies, provider } = await fixture(t);
   provider.workspaces.push({ id: 'workspace-2', name: 'Second Workspace' });
